@@ -1,44 +1,107 @@
-import * as express from 'express';
-import * as mysql from 'mysql2'
-import * as cors from 'cors'
-const app = express()
+import * as express from "express";
+import * as mysql from "mysql2";
+import * as cors from "cors";
+const app = express();
 
-app.use(cors())
+app.use(cors());
 
-const getSQLConnection = (errorResponse: express.Response): Promise<mysql.PoolConnection> => {
-    return new Promise((resolve, reject) => {
-        mysql.createPool({
-            user: "root",
-            password: "",
-            host: "127.0.0.1",
-            port: 3306,
-            database: "seven",
-            namedPlaceholders: true
-        }).getConnection((err, conn) => {
-            if (err) {
-                errorResponse.json({ status: "not ok", error: err })
-                return resolve(null);
-            }
-            return resolve(conn)
-        })
-    })
-}
+const getSQLConnection = (
+  errorResponse: express.Response
+): Promise<mysql.PoolConnection> => {
+  return new Promise((resolve, reject) => {
+    mysql
+      .createPool({
+        user: "root",
+        password: "",
+        host: "127.0.0.1",
+        port: 3306,
+        database: "seven",
+        namedPlaceholders: true,
+      })
+      .getConnection((err, conn) => {
+        if (err) {
+          errorResponse.json({ status: "not ok", error: err });
+          return resolve(null);
+        }
+        return resolve(conn);
+      });
+  });
+};
 
-app.use(express.urlencoded({ extended: true }))
-app.use(express.json())
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
+// app.get('/getstore', async (req, res) => {
+//     const sql = `SELECT * FROM store WHERE store_id = ${req.query.id}`
+//     console.log(req.query);
+//     const conn = await getSQLConnection(res)
+//     if(!conn) return;
+//     conn.execute(sql, (err, result: any[]) => {
+//         if (err) return res.status(400).json({ status: "not ok", error: err });
+//         if (result.length == 0) return res.status(400).json({ status: "not found" });
+//         return res.status(200).json({ status: "ok", result: result })
+//     })
+// })
 
-app.get('/getstore', async (req, res) => {
-    const sql = `SELECT * FROM store WHERE store_id = ${req.query.id}`
-    console.log(req.query);
-    const conn = await getSQLConnection(res)
-    if(!conn) return;
-    conn.execute(sql, (err, result: any[]) => {
-        if (err) return res.status(400).json({ status: "not ok", error: err });
-        if (result.length == 0) return res.status(400).json({ status: "not found" });
-        return res.status(200).json({ status: "ok", result: result })
-    })
-})
+app.get("/getstore", async (req, res) => {
+  const sql = `SELECT store.store_name 
+  ,store.store_id 
+  ,store.store_latitude
+  ,store.store_longitude
+  ,night.weatherIconUrl
+  ,night.date
+  ,night.weatherDesc
+  ,night.tempC
+  ,night.windspeedKmph
+  ,night.humidity 
+  ,day.weatherIconUrl AS day_weatherIconUrl
+  ,day.date AS day_date
+  ,day.weatherDesc AS day_weatherDesc
+  ,day.tempC AS day_tempC
+  ,day.windspeedKmph AS day_windspeedKmph
+  ,day.humidity  AS day_humidity
+  FROM store JOIN night ON store.store_id = night.store_id JOIN day ON store.store_id = day.store_id 
+  WHERE store.store_id = ${req.query.id} AND night.date = CURRENT_DATE() AND day.date = CURRENT_DATE()`;
+  console.log(req.query);
+  const conn = await getSQLConnection(res);
+  if (!conn) return;
+  conn.execute(sql, (err, result: any[]) => {
+    if (err) return res.status(400).json({ status: "not ok", error: err });
+    if (result.length == 0)
+      return res.status(400).json({ status: "not found" });
+    return res.status(200).json({ status: "ok", result: result });
+  });
+});
+
+app.get("/getlatlong", async (req, res) => {
+    const sql = `SELECT store.store_name 
+    ,store.store_id 
+    ,store.store_latitude
+    ,store.store_longitude
+    ,night.weatherIconUrl
+    ,night.date
+    ,night.weatherDesc
+    ,night.tempC
+    ,night.windspeedKmph
+    ,night.humidity 
+    ,day.weatherIconUrl AS day_weatherIconUrl
+    ,day.date AS day_date
+    ,day.weatherDesc AS day_weatherDesc
+    ,day.tempC AS day_tempC
+    ,day.windspeedKmph AS day_windspeedKmph
+    ,day.humidity  AS day_humidity
+    FROM store JOIN night ON store.store_id = night.store_id JOIN day ON store.store_id = day.store_id 
+    WHERE store.store_latitude = ${req.query.lat} AND store.store_longitude = ${req.query.long} AND night.date = CURRENT_DATE() AND day.date = CURRENT_DATE()`;
+  console.log(req.query);
+  const conn = await getSQLConnection(res);
+  if (!conn) return;
+  conn.execute(sql, (err, result: any[]) => {
+    if (err) return res.status(400).json({ status: "not ok", error: err });
+    if (result.length == 0)
+      return res.status(400).json({ status: "not found" });
+    return res.status(200).json({ status: "ok", result: result });
+  });
+});
 
 // app.post('/login', async (req, res) => {
 //     const body = req.body ?? {}
@@ -61,16 +124,16 @@ app.get('/getstore', async (req, res) => {
 
 //     if (!requester) return res.status(400).json({ status: "not ok, id not found" });
 
-//     const sql = isfull ? `SELECT s.*, concat(u.fname, " ", u.lname) as requester_name 
+//     const sql = isfull ? `SELECT s.*, concat(u.fname, " ", u.lname) as requester_name
 //     ,t.label as topic_label
-//     FROM suggest s 
+//     FROM suggest s
 //     left join user u on u.id = s.requester
 //     left join topic t on s.topic_id = t.id
-//     ` : 
-//     `SELECT s.*, concat(u.fname, " ", u.lname) as requester_name 
+//     ` :
+//     `SELECT s.*, concat(u.fname, " ", u.lname) as requester_name
 //     ,t.label as topic_label
-//     FROM suggest s 
-//     left join user u on u.id = s.requester 
+//     FROM suggest s
+//     left join user u on u.id = s.requester
 //     left join topic t on s.topic_id = t.id
 //     where requester = :requester`;
 //     const conn = await getSQLConnection(res)
@@ -119,6 +182,6 @@ app.get('/getstore', async (req, res) => {
 //     })
 // })
 
-app.listen(3300, () => {
-    console.log('Start server at port 3300.')
-})
+app.listen(3000, () => {
+  console.log("Start server at port 3000.");
+});
