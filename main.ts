@@ -117,7 +117,7 @@ app.get("/getlatlong", async (req, res) => {
 //         return res.status(200).json({ status: "ok", result: result[0] })
 //     })
 // })
-
+//==
 // app.get('/getSuggestList', async (req, res) => {
 //     const isfull = req.query.full == "true"
 //     const requester = req.query.requester;
